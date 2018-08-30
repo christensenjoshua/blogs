@@ -12,6 +12,9 @@ new Vue({
   el: '#app',
   router,
   store,
+  created() {
+    this.$store.dispatch('authenticate')
+  },
   components: { App },
   template: '<App/>'
 })
