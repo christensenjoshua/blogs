@@ -10,11 +10,23 @@ vue.use(vuex)
 
 export default new vuex.Store({
     state: {
-        user: {}
+        user: {},
+        blogs: [],
+        activeBlog: {},
+        myBlogs: []
     },
     mutations: {
         setUser(state, payload) {
             state.user = payload
+        },
+        setBlogs(state, payload) {
+            state.blogs = payload
+        },
+        setMyBlogs(state, payload) {
+            state.myBlogs = payload
+        },
+        setActiveBlog(state, payload) {
+            state.activeBlog = payload
         }
     },
     actions: {
@@ -38,7 +50,7 @@ export default new vuex.Store({
             firebase.auth().onAuthStateChanged(user => {
                 if (user) {
                     commit('setUser', user)
-                    router.push({ name: 'Dashboard' })
+                    dispatch('getMyBlogs')
                 } else {
                     commit('setUser', {})
                     router.push({ name: 'Login' })
@@ -51,6 +63,47 @@ export default new vuex.Store({
                 router.push({ name: 'Login' })
             }).catch(err => {
                 console.error(err)
+            })
+        },
+        getBlogs({ commit, dispatch }) {
+            db.collection('blogs').get().then(querySnapshot => {
+                let blogs = []
+                querySnapshot.forEach(doc => {
+                    if (doc.exists) {
+                        let blog = doc.data()
+                        blog.id = doc.id
+                        blogs.push(blog)
+                    }
+                })
+                commit('setBlogs', blogs)
+            })
+        },
+        getMyBlogs({ state, commit, dispatch }) {
+            db.collection('blogs').where('author', '==', state.user.email).get().then(querySnapshot => {
+                let blogs = []
+                querySnapshot.forEach(doc => {
+                    if (doc.exists) {
+                        let blog = doc.data()
+                        blog.id = doc.id
+                        blogs.push(blog)
+                    }
+                })
+                commit('setMyBlogs', blogs)
+            })
+        },
+        getBlog({ commit, dispatch }, id) {
+            db.collection('blogs').doc(id).get().then(doc => {
+                let blog = doc.data()
+                blog.id = doc.id
+                commit('setActiveBlog', blog)
+            }).catch(err => {
+                console.error(err)
+            })
+        },
+        createBlog({ commit, dispatch }, newBlog) {
+            db.collection('blogs').add(newBlog).then(doc => {
+                console.log('Created Blog with ID ' + doc.id)
+                dispatch('getBlogs')
             })
         }
     }
